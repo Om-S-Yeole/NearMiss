@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "NearMiss"
+version = "0.1"
+description = "A deep learning system that predicts satellite collision risks by combining orbital mechanics data with ML-based forecasting of orbital uncertainties."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Om Yeole" }
+]
+requires-python = ">=3.12"
+
+dependencies = [
+    "numpy>=2.3.4",
+    "poliastro>=0.7.0",
+    "sgp4>=2.25",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "pre-commit",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+include = '\.pyi?$'
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
