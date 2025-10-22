@@ -1,3 +1,10 @@
 # Virtual Environment
 myenv/
 venv/
+
+# Cache files
+__pycache__/
+.pytest_cache/
+
+# Data outside the src folder
+/data
