@@ -40,7 +40,7 @@ def reterive_data_from_api():
             res = requests.get(request_url)
             if res.ok:
                 if res.text:
-                    response_txt += f"{"\n" if response_txt else ""}{res.text}"
+                    response_txt += f"{res.text.replace('\r', '')}"
                 else:
                     print(
                         f"Response for group '{group}' do not contain TLE data string in text."
