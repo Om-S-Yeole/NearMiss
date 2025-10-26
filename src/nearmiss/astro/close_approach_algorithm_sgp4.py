@@ -32,6 +32,10 @@ def close_approach_physical_algorithm_sgp4(
     """
     Determine the closest approach and collision probability between two satellites using SGP4.
 
+    This function uses SGP4 propagation to determine the closest approach between two satellites
+    and calculates the probability of collision. Several filters are applied to reduce unnecessary
+    computations, including inclination-RAAN, apoapsis-periapsis, bounding-box, and relative motion filters.
+
     Parameters
     ----------
     tle1 : tuple[str, str]
@@ -43,24 +47,35 @@ def close_approach_physical_algorithm_sgp4(
     D_stop : datetime
         End time of the analysis window.
     r_obj_1 : float, optional
-        Radius of the first object. Default is 1.5.
+        Radius of the first object in meters. Default is 1.5 m.
     r_obj_2 : float, optional
-        Radius of the second object. Default is 1.5.
+        Radius of the second object in meters. Default is 1.5 m.
     Dist : float, optional
-        Minimum distance threshold for collision. Default is 10.0 km.
-    inc_tol: float, optional
-        Inclination tolarence in deg for Inclination RAAN Filter. Default is 10 deg.
-    raan_tol: float, optional
-        Right Ascension of Ascending Node tolarence in deg for Inclination RAAN Filter. Default is 15 deg.
-    threshold_km: float, optional
-        Threshold distance in km for Relative Motion Filter. Default is 8.0 km.
-    safety_margin: float, optional
-        Safety margin distance in km for Relative Motion Filter. Default is 0.0 km.
+        Minimum distance threshold for collision in kilometers. Default is 10.0 km.
+    inc_tol : float, optional
+        Inclination tolerance in degrees for the inclination-RAAN filter. Default is 10.0 degrees.
+    raan_tol : float, optional
+        RAAN (Right Ascension of Ascending Node) tolerance in degrees for the inclination-RAAN filter. Default is 15.0 degrees.
+    threshold_km : float, optional
+        Threshold distance in kilometers for the relative motion filter. Default is 8.0 km.
+    safety_margin : float, optional
+        Safety margin distance in kilometers for the relative motion filter. Default is 0.0 km.
 
     Returns
     -------
-    tuple[datetime|None, float|None, float]
-        Time of closest approach, closest distance, and maximum collision probability.
+    tuple[int, datetime | None, float | None, float]
+        A tuple containing:
+        - Integer code indicating which filter rejected the pair (0 if no rejection).
+        - Time of closest approach (datetime) or None if no close approach is found.
+        - Closest distance (float) or None if no close approach is found.
+        - Maximum collision probability (float).
+
+        Filter codes:
+        0 : No rejection by any filter.
+        1 : Inclination-RAAN Filter.
+        2 : Apoapsis-Periapsis Filter.
+        3 : Bounding-Box Filter.
+        4 : Relative Motion Filter.
 
     Raises
     ------
@@ -70,6 +85,12 @@ def close_approach_physical_algorithm_sgp4(
         If input parameters are invalid or inconsistent.
     RuntimeError
         If the minimization process fails.
+
+    Notes
+    -----
+    - The function applies multiple filters to reduce computational overhead.
+    - The SGP4 propagation is used to calculate the positions and velocities of the satellites.
+    - The collision probability is calculated based on the closest approach distance.
     """
     # --- Type Validation ---
     if not isinstance(tle1, tuple) or not isinstance(tle2, tuple):
@@ -121,7 +142,7 @@ def close_approach_physical_algorithm_sgp4(
         print(
             "Inclination-RAAN filter activated for this pair. No possibility of collision."
         )
-        return (None, None, 0)
+        return (1, None, None, 0)
 
     # --- Apoapsis-Periapsis Filter ---
     r_p1 = (sat1.a * (1 - sat1.ecco)) * 6378.135 / sat1.radiusearthkm  # km
@@ -132,14 +153,14 @@ def close_approach_physical_algorithm_sgp4(
         print(
             f"Apoapsis-Periapsis Filter activated for this pair. No possibility of collision. (Delta={max(r_p1, r_p2)-min(r_a1, r_a2):.2f} km)"
         )
-        return (None, None, 0.0)
+        return (2, None, None, 0.0)
 
     # --- Bounding-Box Filter ---
     if not bounding_box_filter(sat1, sat2, common_epoch, D_start, D_stop):
         print(
             f"Bounding Box Filter activated for this pair. No possibility of collision for given time window."
         )
-        return (None, None, 0.0)
+        return (3, None, None, 0.0)
 
     # --- Relative Motion Filter ---
     if not relative_motion_filter(
@@ -154,7 +175,7 @@ def close_approach_physical_algorithm_sgp4(
         print(
             f"Relative motion filter activated for this pair. No possibility of collision for given time window."
         )
-        return (None, None, 0.0)
+        return (4, None, None, 0.0)
 
     # --- Minimize distance squared ---
     start_offset = (D_start - common_epoch).total_seconds()
@@ -174,4 +195,4 @@ def close_approach_physical_algorithm_sgp4(
     d_min = sqrt(distance_squared(res.x, sat1, sat2, common_epoch))
     P_max = max_prob_function(r_obj_1 / 1000, r_obj_2 / 1000, d_min)
 
-    return (t_min, d_min, P_max)
+    return (0, t_min, d_min, P_max)
