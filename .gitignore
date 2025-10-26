@@ -8,3 +8,6 @@ __pycache__/
 
 # Data outside the src folder
 /data
+
+# Experimental file
+experimental_file.py

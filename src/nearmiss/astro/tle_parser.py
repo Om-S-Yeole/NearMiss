@@ -41,12 +41,6 @@ def tle_to_r_v(
     - Returned velocity vector has units km/s.
     """
 
-    if not isinstance(line_1, str):
-        raise TypeError(f"Expected type of line_1 is str. Got {type(line_1)}")
-    if not isinstance(line_2, str):
-        raise TypeError(f"Expected type of line_2 is str. Got {type(line_2)}")
-    if not isinstance(whichconst, int):
-        raise TypeError(f"Expected type of whichconst is int. Got {type(whichconst)}")
     if not (whichconst in (0, 1, 2)):
         raise ValueError(
             f"Expected value of whichconst is from [0, 1, 2]. Got {whichconst}."
@@ -95,14 +89,6 @@ def raw_tle_file_to_r_v_processer(
     - The name of the latest processed file is updated in "latest_processed_data_file.txt".
     """
 
-    if not isinstance(from_latest_raw_data_file, bool):
-        raise TypeError(
-            f"Expected type of from_latest_raw_data_file is bool. Got {type(from_latest_raw_data_file)}."
-        )
-    if not (isinstance(raw_file_name, str) or raw_file_name is None):
-        raise TypeError(
-            f"Expected types of raw_file_name are either str or None. Got {type(raw_file_name)}."
-        )
     if (not from_latest_raw_data_file) and (not raw_file_name):
         raise ValueError(
             f"If the latest file data must not be processed (by setting from_latest_raw_data_file argument as False), then it is expected to provide the value for argument raw_file_name."
@@ -210,16 +196,6 @@ def process_data_to_r_v(
     - The processed data is saved in a CSV file in the "data/processed" directory.
     """
 
-    if not isinstance(from_api, bool):
-        raise TypeError(f"Expected type of from_api is bool. Got {type(from_api)}.")
-    if not isinstance(from_latest_raw_data_file, bool):
-        raise TypeError(
-            f"Expected type of from_latest_raw_data_file is bool. Got {type(from_latest_raw_data_file)}."
-        )
-    if not (isinstance(raw_file_name, str) or raw_file_name is None):
-        raise TypeError(
-            f"Expected types of raw_file_name are either str or None. Got {type(raw_file_name)}."
-        )
     if (not from_latest_raw_data_file) and (not raw_file_name):
         raise ValueError(
             f"If the latest file data must not be processed (by setting from_latest_raw_data_file argument as False), then it is expected to provide the value for argument raw_file_name."
