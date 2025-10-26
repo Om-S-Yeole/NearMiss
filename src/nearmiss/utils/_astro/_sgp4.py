@@ -65,6 +65,6 @@ def distance_squared(
     float
         Squared distance between the two satellites.
     """
-    r1, v1 = propagate_sgp4(sat1, t_sec, epoch)
-    r2, v2 = propagate_sgp4(sat2, t_sec, epoch)
+    r1, _ = propagate_sgp4(sat1, t_sec, epoch)
+    r2, _ = propagate_sgp4(sat2, t_sec, epoch)
     return float(np.sum((r2 - r1) ** 2))

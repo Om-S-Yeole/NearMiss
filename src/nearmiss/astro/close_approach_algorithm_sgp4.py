@@ -1,11 +1,13 @@
 import numpy as np
-from math import sqrt
+from math import sqrt, log
 from sgp4.api import Satrec
 from datetime import datetime, timedelta
 from scipy.optimize import minimize_scalar
 from typing import Tuple
+from sgp4.conveniences import sat_epoch_datetime
 from nearmiss.utils import (
     jd_to_datetime,
+    datetime_to_jd_2000,
     propagate_sgp4,
     distance_squared,
     max_prob_function,
@@ -13,6 +15,10 @@ from nearmiss.utils import (
     bounding_box_filter,
     relative_motion_filter,
     inclination_raan_filter,
+    satellite_attributes_from_Satrec_obj,
+    SingleSatInputAttributes,
+    MLOutputAttributes,
+    SatPairAttributes,
 )
 
 
@@ -28,13 +34,12 @@ def close_approach_physical_algorithm_sgp4(
     raan_tol: float = 15.0,
     threshold_km: float = 8.0,
     safety_margin: float = 0.0,
-) -> Tuple[datetime | None, float | None, float]:
+) -> SatPairAttributes:
     """
     Determine the closest approach and collision probability between two satellites using SGP4.
 
-    This function uses SGP4 propagation to determine the closest approach between two satellites
-    and calculates the probability of collision. Several filters are applied to reduce unnecessary
-    computations, including inclination-RAAN, apoapsis-periapsis, bounding-box, and relative motion filters.
+    This function uses SGP4 propagation to determine the closest approach between two satellites and calculates the probability of collision. Several filters are applied to reduce unnecessary computations, including inclination-RAAN, apoapsis-periapsis, bounding-box, and relative motion filters.
+    The function returns a `SatPairAttributes` object containing the input attributes of both satellites and the output attributes, including the filter rejection code time of closest approach, closest distance, and collision probability.
 
     Parameters
     ----------
@@ -63,12 +68,14 @@ def close_approach_physical_algorithm_sgp4(
 
     Returns
     -------
-    tuple[int, datetime | None, float | None, float]
-        A tuple containing:
-        - Integer code indicating which filter rejected the pair (0 if no rejection).
-        - Time of closest approach (datetime) or None if no close approach is found.
-        - Closest distance (float) or None if no close approach is found.
-        - Maximum collision probability (float).
+    SatPairAttributes
+        A dataclass containing:
+        - Input attributes for both satellites (`SingleSatInputAttributes`).
+        - Output attributes (`MLOutputAttributes`) including:
+            - Filter rejection code (int).
+            - Time of closest approach in the J2000 system (float, scaled by 1e5).
+            - Natural logarithm of (1 + closest distance) (float).
+            - Collision probability at the closest approach (float).
 
         Filter codes:
         0 : No rejection by any filter.
@@ -91,6 +98,7 @@ def close_approach_physical_algorithm_sgp4(
     - The function applies multiple filters to reduce computational overhead.
     - The SGP4 propagation is used to calculate the positions and velocities of the satellites.
     - The collision probability is calculated based on the closest approach distance.
+    - If a filter rejects the pair, the function returns early with the corresponding filter rejection code.
     """
     # --- Type Validation ---
     if not isinstance(tle1, tuple) or not isinstance(tle2, tuple):
@@ -117,6 +125,14 @@ def close_approach_physical_algorithm_sgp4(
     # --- Initialize satellites ---
     sat1 = Satrec.twoline2rv(*tle1)
     sat2 = Satrec.twoline2rv(*tle2)
+    sat_1_inp_attri: SingleSatInputAttributes = satellite_attributes_from_Satrec_obj(
+        sat1, D_start, sat_epoch_datetime(sat1)
+    )
+    sat_2_inp_attri: SingleSatInputAttributes = satellite_attributes_from_Satrec_obj(
+        sat2, D_start, sat_epoch_datetime(sat2)
+    )
+
+    filter_rejection_code = 0
 
     # --- Get epochs and sync to common ---
     epoch1 = jd_to_datetime(sat1.jdsatepoch + sat1.jdsatepochF)
@@ -131,7 +147,7 @@ def close_approach_physical_algorithm_sgp4(
     # --- Filters ---
     # ---------------
 
-    # --- Inclination-RAAN Filter ---
+    # --- 1: Inclination-RAAN Filter ---
     sat_1_inc = np.rad2deg(sat1.inclo)
     sat_1_raan = np.rad2deg(sat1.nodeo)
     sat_2_inc = np.rad2deg(sat2.inclo)
@@ -142,9 +158,16 @@ def close_approach_physical_algorithm_sgp4(
         print(
             "Inclination-RAAN filter activated for this pair. No possibility of collision."
         )
-        return (1, None, None, 0)
+        filter_rejection_code = 1
+        outputs: MLOutputAttributes = MLOutputAttributes(filter_rejection_code, 0, 0, 0)
 
-    # --- Apoapsis-Periapsis Filter ---
+        sat_pair_attri_and_outputs: SatPairAttributes = SatPairAttributes(
+            sat_1_inp_attri, sat_2_inp_attri, outputs
+        )
+
+        return sat_pair_attri_and_outputs
+
+    # --- 2: Apoapsis-Periapsis Filter ---
     r_p1 = (sat1.a * (1 - sat1.ecco)) * 6378.135 / sat1.radiusearthkm  # km
     r_a1 = (sat1.a * (1 + sat1.ecco)) * 6378.135 / sat1.radiusearthkm  # km
     r_p2 = (sat2.a * (1 - sat2.ecco)) * 6378.135 / sat2.radiusearthkm  # km
@@ -153,16 +176,30 @@ def close_approach_physical_algorithm_sgp4(
         print(
             f"Apoapsis-Periapsis Filter activated for this pair. No possibility of collision. (Delta={max(r_p1, r_p2)-min(r_a1, r_a2):.2f} km)"
         )
-        return (2, None, None, 0.0)
+        filter_rejection_code = 2
+        outputs: MLOutputAttributes = MLOutputAttributes(filter_rejection_code, 0, 0, 0)
 
-    # --- Bounding-Box Filter ---
+        sat_pair_attri_and_outputs: SatPairAttributes = SatPairAttributes(
+            sat_1_inp_attri, sat_2_inp_attri, outputs
+        )
+
+        return sat_pair_attri_and_outputs
+
+    # --- 3: Bounding-Box Filter ---
     if not bounding_box_filter(sat1, sat2, common_epoch, D_start, D_stop):
         print(
             f"Bounding Box Filter activated for this pair. No possibility of collision for given time window."
         )
-        return (3, None, None, 0.0)
+        filter_rejection_code = 3
+        outputs: MLOutputAttributes = MLOutputAttributes(filter_rejection_code, 0, 0, 0)
 
-    # --- Relative Motion Filter ---
+        sat_pair_attri_and_outputs: SatPairAttributes = SatPairAttributes(
+            sat_1_inp_attri, sat_2_inp_attri, outputs
+        )
+
+        return sat_pair_attri_and_outputs
+
+    # --- 4: Relative Motion Filter ---
     if not relative_motion_filter(
         r_1,
         v_1,
@@ -175,7 +212,14 @@ def close_approach_physical_algorithm_sgp4(
         print(
             f"Relative motion filter activated for this pair. No possibility of collision for given time window."
         )
-        return (4, None, None, 0.0)
+        filter_rejection_code = 4
+        outputs: MLOutputAttributes = MLOutputAttributes(filter_rejection_code, 0, 0, 0)
+
+        sat_pair_attri_and_outputs: SatPairAttributes = SatPairAttributes(
+            sat_1_inp_attri, sat_2_inp_attri, outputs
+        )
+
+        return sat_pair_attri_and_outputs
 
     # --- Minimize distance squared ---
     start_offset = (D_start - common_epoch).total_seconds()
@@ -195,4 +239,12 @@ def close_approach_physical_algorithm_sgp4(
     d_min = sqrt(distance_squared(res.x, sat1, sat2, common_epoch))
     P_max = max_prob_function(r_obj_1 / 1000, r_obj_2 / 1000, d_min)
 
-    return (0, t_min, d_min, P_max)
+    outputs: MLOutputAttributes = MLOutputAttributes(
+        filter_rejection_code, datetime_to_jd_2000(t_min) / 1e5, log(1 + d_min), P_max
+    )
+
+    sat_pair_attri_and_outputs: SatPairAttributes = SatPairAttributes(
+        sat_1_inp_attri, sat_2_inp_attri, outputs
+    )
+
+    return sat_pair_attri_and_outputs

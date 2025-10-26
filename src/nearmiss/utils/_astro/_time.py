@@ -1,5 +1,6 @@
 import numpy as np
 from datetime import datetime, timedelta, timezone
+from sgp4.api import jday
 
 
 def jd_to_datetime(jd: float) -> datetime:
@@ -31,3 +32,11 @@ def jd_to_datetime(jd: float) -> datetime:
     return datetime(year, month, int(day), tzinfo=timezone.utc) + timedelta(
         days=day % 1
     )
+
+
+def datetime_to_jd_2000(dt: datetime) -> float:
+    whole_part, frac_part = jday(
+        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
+    )
+    julian_day_2000 = whole_part + frac_part - 2451545.0
+    return julian_day_2000
