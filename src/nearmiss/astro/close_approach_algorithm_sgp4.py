@@ -30,8 +30,9 @@ def close_approach_physical_algorithm_sgp4(
     r_obj_1: float = 1.5,
     r_obj_2: float = 1.5,
     Dist: float = 10.0,
-    inc_tol: float = 10.0,
-    raan_tol: float = 15.0,
+    # inc_tol: float = 10.0,
+    # raan_tol: float = 15.0,
+    plane_tol_deg: float = 15.0,
     threshold_km: float = 8.0,
     safety_margin: float = 0.0,
 ) -> SatPairAttributes:
@@ -153,11 +154,11 @@ def close_approach_physical_algorithm_sgp4(
     sat_2_inc = np.rad2deg(sat2.inclo)
     sat_2_raan = np.rad2deg(sat2.nodeo)
     if not inclination_raan_filter(
-        sat_1_inc, sat_2_inc, sat_1_raan, sat_2_raan, inc_tol, raan_tol
+        sat_1_inc, sat_2_inc, sat_1_raan, sat_2_raan, plane_tol_deg
     ):
-        print(
-            "Inclination-RAAN filter activated for this pair. No possibility of collision."
-        )
+        # print(
+        #     "Inclination-RAAN filter activated for this pair. No possibility of collision."
+        # )
         filter_rejection_code = 1
         outputs: MLOutputAttributes = MLOutputAttributes(filter_rejection_code, 0, 0, 0)
 
@@ -173,9 +174,9 @@ def close_approach_physical_algorithm_sgp4(
     r_p2 = (sat2.a * (1 - sat2.ecco)) * 6378.135 / sat2.radiusearthkm  # km
     r_a2 = (sat2.a * (1 + sat2.ecco)) * 6378.135 / sat2.radiusearthkm  # km
     if apoapsis_periapsis_filter(r_p1, r_p2, r_a1, r_a2, Dist):
-        print(
-            f"Apoapsis-Periapsis Filter activated for this pair. No possibility of collision. (Delta={max(r_p1, r_p2)-min(r_a1, r_a2):.2f} km)"
-        )
+        # print(
+        #     f"Apoapsis-Periapsis Filter activated for this pair. No possibility of collision. (Delta={max(r_p1, r_p2)-min(r_a1, r_a2):.2f} km)"
+        # )
         filter_rejection_code = 2
         outputs: MLOutputAttributes = MLOutputAttributes(filter_rejection_code, 0, 0, 0)
 
@@ -187,9 +188,9 @@ def close_approach_physical_algorithm_sgp4(
 
     # --- 3: Bounding-Box Filter ---
     if not bounding_box_filter(sat1, sat2, common_epoch, D_start, D_stop):
-        print(
-            f"Bounding Box Filter activated for this pair. No possibility of collision for given time window."
-        )
+        # print(
+        #     f"Bounding Box Filter activated for this pair. No possibility of collision for given time window."
+        # )
         filter_rejection_code = 3
         outputs: MLOutputAttributes = MLOutputAttributes(filter_rejection_code, 0, 0, 0)
 
@@ -209,9 +210,9 @@ def close_approach_physical_algorithm_sgp4(
         threshold_km=threshold_km,
         safety_margin_km=safety_margin,
     ):
-        print(
-            f"Relative motion filter activated for this pair. No possibility of collision for given time window."
-        )
+        # print(
+        #     f"Relative motion filter activated for this pair. No possibility of collision for given time window."
+        # )
         filter_rejection_code = 4
         outputs: MLOutputAttributes = MLOutputAttributes(filter_rejection_code, 0, 0, 0)
 

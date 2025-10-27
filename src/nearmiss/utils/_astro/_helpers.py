@@ -1,11 +1,12 @@
+import numpy as np
 from datetime import datetime
 from sgp4.api import Satrec
 from sgp4.propagation import sgp4
-from nearmiss.utils._astro import (
+from nearmiss.utils._astro._constants import (
     EARTH_RADII,
     EARTH_SURFACE_VELOCITY,
-    SingleSatInputAttributes,
 )
+from nearmiss.utils._astro._dataclasses import SingleSatInputAttributes
 
 
 def satellite_attributes_from_Satrec_obj(
@@ -35,15 +36,17 @@ def satellite_attributes_from_Satrec_obj(
     mm = sat.mm
     nm = sat.nm
 
-    r, v = sgp4(sat, 0)
+    jd = np.atleast_1d(sat.jdsatepoch)
+    fr = np.atleast_1d(sat.jdsatepochF)
+    _, r, v = sat.sgp4_array(jd, fr)
 
-    r_x = r[0] / EARTH_RADII
-    r_y = r[1] / EARTH_RADII
-    r_z = r[2] / EARTH_RADII
+    r_x = r[0][0] / EARTH_RADII
+    r_y = r[0][1] / EARTH_RADII
+    r_z = r[0][2] / EARTH_RADII
 
-    v_x = v[0] / EARTH_SURFACE_VELOCITY
-    v_y = v[1] / EARTH_SURFACE_VELOCITY
-    v_z = v[2] / EARTH_SURFACE_VELOCITY
+    v_x = v[0][0] / EARTH_SURFACE_VELOCITY
+    v_y = v[0][1] / EARTH_SURFACE_VELOCITY
+    v_z = v[0][2] / EARTH_SURFACE_VELOCITY
 
     tle_age = ((D_start - tle_epoch).total_seconds()) / 3600
 

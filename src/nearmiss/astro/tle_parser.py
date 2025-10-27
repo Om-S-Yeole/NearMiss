@@ -85,8 +85,8 @@ def raw_tle_file_to_r_v_processer(
 
     Notes
     -----
-    - The processed data is saved in a CSV file in the "data/processed" directory.
-    - The name of the latest processed file is updated in "latest_processed_data_file.txt".
+    - The processed data is saved in a CSV file in the "data/processed_r_v" directory.
+    - The name of the latest processed file is updated in "latest_processed_r_v_data_file.txt".
     """
 
     if (not from_latest_raw_data_file) and (not raw_file_name):
@@ -120,7 +120,7 @@ def raw_tle_file_to_r_v_processer(
             latest_file = file.read()
             file_path = os.path.join(raw_data_dir_path, latest_file)
             root, _ = os.path.splitext(latest_file)
-            processed_file_name = f"{root}_processed.csv"
+            processed_file_name = f"{root}_processed_r_v.csv"
     else:
         file_path = os.path.join(raw_data_dir_path, raw_file_name)
         if not os.path.isfile(file_path):
@@ -128,9 +128,9 @@ def raw_tle_file_to_r_v_processer(
                 f"Error: file named {raw_file_name} do not exist in data/raw directory."
             )
         root, _ = os.path.splitext(raw_file_name)
-        processed_file_name = f"{root}_processed.csv"
+        processed_file_name = f"{root}_processed_r_v.csv"
 
-    processed_dir_path = os.path.join(data_dir_path, "processed")
+    processed_dir_path = os.path.join(data_dir_path, "processed_r_v")
     os.makedirs(processed_dir_path, exist_ok=True)
     processed_file_path = os.path.join(processed_dir_path, processed_file_name)
 
@@ -159,7 +159,7 @@ def raw_tle_file_to_r_v_processer(
                 )
 
     with open(
-        os.path.join(data_dir_path, "latest_processed_data_file.txt"), "w"
+        os.path.join(data_dir_path, "latest_processed_r_v_data_file.txt"), "w"
     ) as file:
         file.write(processed_file_name)
 

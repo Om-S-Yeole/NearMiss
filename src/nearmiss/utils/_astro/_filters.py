@@ -139,10 +139,65 @@ def relative_motion_filter(
         return True
 
 
-def _angular_difference(deg1: float, deg2: float) -> float:
-    """Compute smallest angular difference between two angles in degrees."""
-    diff = abs(deg1 - deg2) % 360.0
-    return diff if diff <= 180.0 else 360.0 - diff
+# def _angular_difference(deg1: float, deg2: float) -> float:
+#     """Compute smallest angular difference between two angles in degrees."""
+#     diff = abs(deg1 - deg2) % 360.0
+#     return diff if diff <= 180.0 else 360.0 - diff
+
+
+# def inclination_raan_filter(
+#     inc1_deg: float,
+#     inc2_deg: float,
+#     raan1_deg: float,
+#     raan2_deg: float,
+#     inc_tol_deg: float = 10.0,
+#     raan_tol_deg: float = 15.0,
+# ) -> bool:
+#     """
+#     Quick geometric filter based on inclination and RAAN.
+#     Returns True if the two orbital planes are close enough that a conjunction
+#     is geometrically possible. Returns False if planes are too far apart.
+
+#     Parameters
+#     ----------
+#     inc1_deg, inc2_deg : float
+#         Inclinations of the two orbits in degrees.
+#     raan1_deg, raan2_deg : float
+#         RAANs of the two orbits in degrees.
+#     inc_tol_deg : float, optional
+#         Maximum allowed difference in inclination. Default = 10 deg.
+#     raan_tol_deg : float, optional
+#         Maximum allowed difference in RAAN. Default = 15 deg.
+
+#     Returns
+#     -------
+#     bool
+#         True if the pair could potentially intersect geometrically.
+#         False if orbital planes are too misaligned to ever meet.
+#     """
+#     d_inc = _angular_difference(inc1_deg, inc2_deg)
+#     d_raan = _angular_difference(raan1_deg, raan2_deg)
+
+#     # planes nearly opposite (retrograde vs prograde)? reject
+#     if abs(inc1_deg - inc2_deg) > 90:
+#         return False
+
+#     # both inclination and RAAN must be within tolerance to pass
+#     if (d_inc <= inc_tol_deg) and (d_raan <= raan_tol_deg):
+#         return True
+#     return False
+
+
+def _plane_normal(incl_deg: float, raan_deg: float) -> np.ndarray:
+    """
+    Compute the unit normal vector to the orbital plane given inclination and RAAN.
+    """
+    i = np.radians(incl_deg)
+    omega = np.radians(raan_deg)
+
+    # Normal vector in ECI frame (consistent with orbital mechanics convention)
+    n = np.array([np.sin(i) * np.sin(omega), -np.sin(i) * np.cos(omega), np.cos(i)])
+    return n
 
 
 def inclination_raan_filter(
@@ -150,39 +205,40 @@ def inclination_raan_filter(
     inc2_deg: float,
     raan1_deg: float,
     raan2_deg: float,
-    inc_tol_deg: float = 10.0,
-    raan_tol_deg: float = 15.0,
+    plane_tol_deg: float = 15.0,
 ) -> bool:
     """
-    Quick geometric filter based on inclination and RAAN.
-    Returns True if the two orbital planes are close enough that a conjunction
-    is geometrically possible. Returns False if planes are too far apart.
+    Geometric filter based on the angle between orbital planes.
+    Returns True if two orbital planes are close enough for conjunction geometry.
 
     Parameters
     ----------
     inc1_deg, inc2_deg : float
-        Inclinations of the two orbits in degrees.
+        Inclinations of the two orbits [degrees].
     raan1_deg, raan2_deg : float
-        RAANs of the two orbits in degrees.
-    inc_tol_deg : float, optional
-        Maximum allowed difference in inclination. Default = 10 deg.
-    raan_tol_deg : float, optional
-        Maximum allowed difference in RAAN. Default = 15 deg.
+        Right Ascension of Ascending Node (RAAN) [degrees].
+    plane_tol_deg : float, optional
+        Maximum allowed angle between plane normals for potential intersection.
+        Default = 15 degrees.
 
     Returns
     -------
     bool
-        True if the pair could potentially intersect geometrically.
-        False if orbital planes are too misaligned to ever meet.
+        True if orbital planes are sufficiently aligned.
+        False if planes are too misaligned to ever intersect.
     """
-    d_inc = _angular_difference(inc1_deg, inc2_deg)
-    d_raan = _angular_difference(raan1_deg, raan2_deg)
 
-    # planes nearly opposite (retrograde vs prograde)? reject
-    if abs(inc1_deg - inc2_deg) > 90:
+    # Reject if one is prograde (<90°) and other is retrograde (>90°)
+    if (inc1_deg < 90 and inc2_deg > 90) or (inc1_deg > 90 and inc2_deg < 90):
         return False
 
-    # both inclination and RAAN must be within tolerance to pass
-    if (d_inc <= inc_tol_deg) and (d_raan <= raan_tol_deg):
-        return True
-    return False
+    # Compute normal vectors for both orbital planes
+    n1 = _plane_normal(inc1_deg, raan1_deg)
+    n2 = _plane_normal(inc2_deg, raan2_deg)
+
+    # Angle between the two normals
+    dot_product = np.clip(np.dot(n1, n2), -1.0, 1.0)
+    plane_angle_deg = np.degrees(np.arccos(dot_product))
+
+    # Check if planes are sufficiently close
+    return plane_angle_deg <= plane_tol_deg
