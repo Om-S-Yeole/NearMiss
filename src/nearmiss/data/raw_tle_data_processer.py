@@ -12,6 +12,7 @@ from scipy.spatial import KDTree
 from sgp4.api import Satrec
 from nearmiss.astro import close_approach_physical_algorithm_sgp4
 from nearmiss.utils import (
+    _read_yaml,
     datetime_to_jd,
     sats_are_physically_identical,
     SatPairAttributes,
@@ -194,6 +195,19 @@ def training_data_maker_from_physical_algorithm(
     with open(processed_file_path, "w") as write_file:
         print(f"Opened the writing file. Starting to write. Please wait...")
         print(f"Satellite pairs algorithm has to check: {len(pairs_to_check)}")
+
+        attributes: list = _read_yaml("nearmiss/data/configs/attributes.yaml")[
+            "csv_attri"
+        ]
+        attri_str: str = ""
+        for idx, attri in enumerate(attributes):
+            if idx == len(attributes) - 1:
+                attri_str += f"{attri}\n"
+            else:
+                attri_str += f"{attri},"
+
+        write_file.write(attri_str)
+
         one_fourth_pairs = int(len(pairs_to_check) / 4)
         half_pairs = 2 * one_fourth_pairs
         three_fourth_pairs = 3 * one_fourth_pairs
