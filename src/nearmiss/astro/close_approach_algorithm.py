@@ -1,3 +1,9 @@
+"""
+Module for determining the closest approach and collision probability between objects.
+
+This module provides a function to calculate the closest approach and collision probability between two objects based on their position, velocity, and covariance data.
+"""
+
 import numpy as np
 from numpy.polynomial.polynomial import Polynomial
 from datetime import datetime, timedelta
@@ -44,13 +50,13 @@ def close_approach_physical_algorithm(
     Parameters
     ----------
     r_p : np.ndarray
-        Position vector of the primary object. Units in km.
+        Position vector of the primary object in km.
     v_p : np.ndarray
-        Velocity vector of the primary object. Units in km/s.
+        Velocity vector of the primary object in km/s.
     r_s : np.ndarray
-        Position vector of the secondary object. Units in km.
+        Position vector of the secondary object in km.
     v_s : np.ndarray
-        Velocity vector of the secondary object. Units in km/s.
+        Velocity vector of the secondary object in km/s.
     t_0 : datetime
         Initial time of the state vectors.
     D_start : datetime
@@ -75,7 +81,10 @@ def close_approach_physical_algorithm(
     Returns
     -------
     tuple[datetime | None, float | None, float]
-        Time of closest approach, closest distance, and maximum collision probability.
+        A tuple containing:
+        - Time of closest approach (datetime or None).
+        - Closest distance (float or None).
+        - Maximum collision probability (float).
 
     Raises
     ------
@@ -83,6 +92,11 @@ def close_approach_physical_algorithm(
         If input parameters are of incorrect types.
     ValueError
         If input parameters are invalid or inconsistent.
+
+    Notes
+    -----
+    - The function uses orbital propagation to determine the closest approach.
+    - Covariance matrices are used to calculate collision probabilities.
     """
 
     # Type validation

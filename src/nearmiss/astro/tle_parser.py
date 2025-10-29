@@ -1,3 +1,9 @@
+"""
+Module for parsing TLE data and converting it to position and velocity vectors.
+
+This module provides functions to process TLE data and convert it into position and velocity vectors for further analysis.
+"""
+
 import os
 from datetime import datetime, timedelta
 from sgp4.model import Satrec

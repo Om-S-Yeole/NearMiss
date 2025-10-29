@@ -11,6 +11,11 @@ from nearmiss.data.data_retrieve import reterive_data_from_api
 def test_reterive_data_from_api(
     mock_open, mock_makedirs, mock_requests_get, mock_read_yaml
 ):
+    """
+    Test the `reterive_data_from_api` function.
+
+    Verifies that the function retrieves data from the API, processes it, and saves it to the appropriate files.
+    """
     # Mock configuration
     mock_read_yaml.return_value = {
         "CELESTRACK": {
@@ -37,6 +42,11 @@ def test_reterive_data_from_api(
 
 
 def test_reterive_data_from_api_no_groups():
+    """
+    Test the `reterive_data_from_api` function with no groups.
+
+    Verifies that the function raises an exception when no groups are specified in the configuration file.
+    """
     with patch(
         "nearmiss.data.data_retrieve._read_yaml",
         return_value={"CELESTRACK": {"groups": []}},

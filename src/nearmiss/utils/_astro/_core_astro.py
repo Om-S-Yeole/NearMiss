@@ -95,7 +95,7 @@ def max_prob_function(r_obj_1: float, r_obj_2: float, d_close: float) -> float:
 
     if r_obj_1 <= 0 or r_obj_2 <= 0:
         raise ValueError("Object radii must be positive non-zero values.")
-    if d_close <= 0:
+    if d_close == 0.0:
         return 1.0
 
     r = (r_obj_1 + r_obj_2) / d_close
