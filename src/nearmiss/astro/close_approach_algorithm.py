@@ -4,27 +4,29 @@ Module for determining the closest approach and collision probability between ob
 This module provides a function to calculate the closest approach and collision probability between two objects based on their position, velocity, and covariance data.
 """
 
-import numpy as np
-from numpy.polynomial.polynomial import Polynomial
 from datetime import datetime, timedelta
-from math import sqrt, isclose
-from filterpy.kalman import MerweScaledSigmaPoints, unscented_transform
+from math import isclose, sqrt
+
+import numpy as np
 from astropy import units as u
 from astropy.time import TimeDelta
+from filterpy.kalman import MerweScaledSigmaPoints, unscented_transform
+from numpy.polynomial.polynomial import Polynomial
 from poliastro.bodies import Earth
 from poliastro.twobody import Orbit
 from poliastro.twobody.propagation import ValladoPropagator
+
 from nearmiss.utils import (
     RSW_to_ECI_covariance,
-    cov_matrix_from_ECI_to_NTW_frame_converter,
     acc_vec_calculator,
+    cov_matrix_from_ECI_to_NTW_frame_converter,
     cubic_spline_root_finder,
-    quintic_polynomial_maker,
-    t_from_tau,
-    semi_major_minor_axis_from_cov_NTW,
     ellipsoidal_function,
     four_point_cubic_spline_root_finder,
     max_prob_function,
+    quintic_polynomial_maker,
+    semi_major_minor_axis_from_cov_NTW,
+    t_from_tau,
 )
 
 
@@ -141,7 +143,7 @@ def close_approach_physical_algorithm(
         )
     if (D_stop - D_start) > timedelta(days=7):
         raise ValueError(
-            f"Maximum time frame limit allowed to check the maximum probability of collision is 7 days. Please adjust the values of D_start and D_stop accordingly."
+            "Maximum time frame limit allowed to check the maximum probability of collision is 7 days. Please adjust the values of D_start and D_stop accordingly."
         )
     if t_0 >= D_stop:
         raise ValueError(
@@ -149,7 +151,7 @@ def close_approach_physical_algorithm(
         )
     if (t_0 < D_start) and ((D_start - t_0) > timedelta(days=3)):
         raise ValueError(
-            f"State vectors earlier than 3 days of the time frame start (D_start) time are not allowed. This leads to inaccuracy in calculations. Please provide fresh state vectors."
+            "State vectors earlier than 3 days of the time frame start (D_start) time are not allowed. This leads to inaccuracy in calculations. Please provide fresh state vectors."
         )
 
     orb_p = Orbit.from_vectors(

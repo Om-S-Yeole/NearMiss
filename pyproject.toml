@@ -17,9 +17,11 @@ dependencies = [
     "numpy>=1.26,<2.0",
     "scipy>=1.10",
     "astropy>=5.3,<6.0",
-    "pyerfa>=2.0",
     "poliastro @ git+https://github.com/poliastro/poliastro.git@21fd7719e89a7d22b4eac63141a60a7f1b01768c",
     "sgp4>=2.20",
+    "torch==2.9.0+cu128",
+    "torchvision==0.24.0+cu128",
+    "scikit-learn==1.7.2"
 ]
 
 [project.optional-dependencies]

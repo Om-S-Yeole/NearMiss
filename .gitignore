@@ -11,3 +11,9 @@ __pycache__/
 
 # Experimental file
 experimental_file.py
+
+# Checkpoints
+checkpoints/
+
+# .pth files
+*.pth

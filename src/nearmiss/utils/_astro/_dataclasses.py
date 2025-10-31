@@ -8,8 +8,6 @@ class SingleSatInputAttributes:
 
     Attributes
     ----------
-    satnum : int
-        Catalog number of the satellite. DO NOT include it for training the ML model.
     ndot : float
         First time derivative of mean motion.
     nddot : float
@@ -68,11 +66,10 @@ class SingleSatInputAttributes:
         Z component of the velocity vector in the ECI frame (in sqrt(GM_earth/R_earth)).
     tle_age : float
         TLE age in hours, calculated as (D_start - TLE_epoch).total_seconds() / 3600.
+    sat_radius: float
+        Radius of the satellite in m.
     """
 
-    satnum: (
-        int  # Catlog number of satellite. DO NOT include it for training of ML model.
-    )
     ndot: float  # First time derivative of mean motion.
     nddot: float  # second time derivative of mean motion.
     bstar: float  # Ballastic drag coefficient.
@@ -104,6 +101,7 @@ class SingleSatInputAttributes:
     v_y: float  # Y component of velocity vector in ECI frame/sqrt(GM_earth/R_earth)
     v_z: float  # Z component of velocity vector in ECI frame/sqrt(GM_earth/R_earth)
     tle_age: float  # TLE age. (D_start - TLE_epoch).total_seconds()/3600
+    sat_radius: float  # Radius of satellite in m.
 
 
 @dataclass

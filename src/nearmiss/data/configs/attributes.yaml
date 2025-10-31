@@ -1,5 +1,4 @@
 csv_attri:
-  - satnum_1
   - ndot_1
   - nddot_1
   - bstar_1
@@ -29,7 +28,7 @@ csv_attri:
   - v_y_1
   - v_z_1
   - tle_age_1
-  - satnum_2
+  - sat_radius_1
   - ndot_2
   - nddot_2
   - bstar_2
@@ -59,6 +58,7 @@ csv_attri:
   - v_y_2
   - v_z_2
   - tle_age_2
+  - sat_radius_2
   - filter_rej_code
   - t_close
   - ln_d_min

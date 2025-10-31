@@ -5,18 +5,20 @@ This module provides functionality to process raw TLE data, identify satellite p
 """
 
 import os
-import numpy as np
-from datetime import datetime, timezone, timedelta
 from dataclasses import asdict
+from datetime import datetime, timedelta, timezone
+
+import numpy as np
 from scipy.spatial import KDTree
 from sgp4.api import Satrec
+
 from nearmiss.astro import close_approach_physical_algorithm_sgp4
 from nearmiss.utils import (
+    SatPairAttributes,
+    SGP4Exception,
     _read_yaml,
     datetime_to_jd,
     sats_are_physically_identical,
-    SatPairAttributes,
-    SGP4Exception,
 )
 
 
@@ -95,11 +97,11 @@ def training_data_maker_from_physical_algorithm(
 
     if (not from_latest_raw_data_file) and (not raw_file_name):
         raise ValueError(
-            f"If the latest file data must not be processed (by setting from_latest_raw_data_file argument as False), then it is expected to provide the value for argument raw_file_name."
+            "If the latest file data must not be processed (by setting from_latest_raw_data_file argument as False), then it is expected to provide the value for argument raw_file_name."
         )
     if from_latest_raw_data_file and raw_file_name:
         print(
-            f"Warning: Function initiated by setting to process latest file as well as by providing raw_file_name. Using the raw_file_name file for further processing."
+            "Warning: Function initiated by setting to process latest file as well as by providing raw_file_name. Using the raw_file_name file for further processing."
         )
 
     file_path = ""
@@ -139,9 +141,9 @@ def training_data_maker_from_physical_algorithm(
 
     # Read all TLEs into memory first
     with open(file_path, "r") as read_file:
-        print(f"Starting the task. Reading all TLEs. Please wait...")
+        print("Starting the task. Reading all TLEs. Please wait...")
         lines = [line.strip() for line in read_file if line.strip()]
-        print(f"Reading TLE file finished. Proceeding to next step.")
+        print("Reading TLE file finished. Proceeding to next step.")
 
     # Group lines into (name, line1, line2)
     sats = [(lines[i], lines[i + 1], lines[i + 2]) for i in range(0, len(lines), 3)]
@@ -193,7 +195,7 @@ def training_data_maker_from_physical_algorithm(
     pairs_to_check = np.array(list(pairs_to_check))
 
     with open(processed_file_path, "w") as write_file:
-        print(f"Opened the writing file. Starting to write. Please wait...")
+        print("Opened the writing file. Starting to write. Please wait...")
         print(f"Satellite pairs algorithm has to check: {len(pairs_to_check)}")
 
         attributes: list = _read_yaml("nearmiss/data/configs/attributes.yaml")[
@@ -214,11 +216,11 @@ def training_data_maker_from_physical_algorithm(
 
         for idx, pair_to_check in enumerate(pairs_to_check):
             if idx == one_fourth_pairs:
-                print(f"[1/4] Processing done, processing further...")
+                print("[1/4] Processing done, processing further...")
             if idx == half_pairs:
-                print(f"[2/4] Processing done, processing further...")
+                print("[2/4] Processing done, processing further...")
             if idx == three_fourth_pairs:
-                print(f"[3/4] Processing done, processing further...")
+                print("[3/4] Processing done, processing further...")
 
             sat_idx_1 = pair_to_check[0]
             sat_idx_2 = pair_to_check[1]

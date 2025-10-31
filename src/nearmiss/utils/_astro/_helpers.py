@@ -7,7 +7,6 @@ This module provides utility functions to extract satellite attributes from `Sat
 import numpy as np
 from datetime import datetime
 from sgp4.api import Satrec
-from sgp4.api import jday
 from nearmiss.utils._astro._constants import (
     EARTH_RADII,
     EARTH_SURFACE_VELOCITY,
@@ -16,7 +15,7 @@ from nearmiss.utils._astro._dataclasses import SingleSatInputAttributes
 
 
 def satellite_attributes_from_Satrec_obj(
-    sat: Satrec, D_start: datetime, tle_epoch: datetime
+    sat: Satrec, D_start: datetime, tle_epoch: datetime, sat_rad: float
 ) -> SingleSatInputAttributes:
     """
     Extract satellite attributes from a `Satrec` object.
@@ -29,6 +28,8 @@ def satellite_attributes_from_Satrec_obj(
         Start time of the analysis window.
     tle_epoch : datetime
         Epoch time of the TLE data.
+    sat_rad: float
+        Radius of satellite in m.
 
     Returns
     -------
@@ -40,7 +41,6 @@ def satellite_attributes_from_Satrec_obj(
     - The function calculates position and velocity vectors in the ECI frame and normalizes them.
     - The TLE age is calculated as the difference between `D_start` and `tle_epoch` in hours.
     """
-    satnum = sat.satnum
     ndot = sat.ndot
     nddot = sat.nddot
     bstar = sat.bstar
@@ -79,7 +79,6 @@ def satellite_attributes_from_Satrec_obj(
     tle_age = ((D_start - tle_epoch).total_seconds()) / 3600
 
     MLInputAttri = SingleSatInputAttributes(
-        satnum,
         ndot,
         nddot,
         bstar,
@@ -109,6 +108,7 @@ def satellite_attributes_from_Satrec_obj(
         v_y,
         v_z,
         tle_age,
+        sat_rad,
     )
     return MLInputAttri
 
