@@ -18,7 +18,7 @@ from nearmiss.utils import (
     SatPairAttributes,
     SingleSatInputAttributes,
     apoapsis_periapsis_filter,
-    datetime_to_jd_2000,
+    # datetime_to_jd_2000,
     distance_squared,
     max_prob_function,
     satellite_attributes_from_Satrec_obj,
@@ -40,20 +40,25 @@ def close_approach_physical_algorithm_sgp4(
 
     Parameters
     ----------
-    tle1 : tuple[str, str]
+    tle1 : tuple of str
         Two-line element set for the first satellite.
-    tle2 : tuple[str, str]
+    tle2 : tuple of str
         Two-line element set for the second satellite.
     D_start : datetime
         Start time of the analysis window.
     D_stop : datetime
         End time of the analysis window.
-    random_sat_radii: bool
-        Whether to take radii of both satellites randomly from range 1 m to 10 m. Default is True. Ignored if both r_obj_1 and r_obj_2 are provided.
-    r_obj_1 : float, None, optional
-        Radius of the first object in meters. Default is None. If both r_obj_1 and r_obj_2 are not given then random_sat_radii must be set to `True`, otherwise raises `ValueError`.
-    r_obj_2 : float, None, optional
-        Radius of the second object in meters. Default is None. If both r_obj_1 and r_obj_2 are not given then random_sat_radii must be set to `True`, otherwise raises `ValueError`.
+    random_sat_radii : bool, optional
+        Whether to take radii of both satellites randomly from range 1 m to 10 m. Default is True.
+        Ignored if both `r_obj_1` and `r_obj_2` are provided.
+    r_obj_1 : float or None, optional
+        Radius of the first object in meters. Default is None.
+        If both `r_obj_1` and `r_obj_2` are not given, then `random_sat_radii` must be set to `True`,
+        otherwise raises `ValueError`.
+    r_obj_2 : float or None, optional
+        Radius of the second object in meters. Default is None.
+        If both `r_obj_1` and `r_obj_2` are not given, then `random_sat_radii` must be set to `True`,
+        otherwise raises `ValueError`.
     Dist : float, optional
         Minimum distance threshold for collision in kilometers. Default is 10.0 km.
 
@@ -171,12 +176,16 @@ def close_approach_physical_algorithm_sgp4(
     if not res.success:
         raise RuntimeError("Failed to find minimum distance.")
 
-    t_min = D_start + timedelta(seconds=res.x)
+    # t_min = D_start + timedelta(seconds=res.x)
+    # t_min = res.x
     d_min = sqrt(res.fun)
     P_max = max_prob_function(r_obj_1 / 1000, r_obj_2 / 1000, d_min)
 
     outputs: MLOutputAttributes = MLOutputAttributes(
-        filter_rejection_code, datetime_to_jd_2000(t_min) / 1e5, log(1 + d_min), P_max
+        filter_rejection_code,
+        # log(1 + t_min),
+        log(1 + d_min),
+        P_max,
     )
 
     sat_pair_attri_and_outputs: SatPairAttributes = SatPairAttributes(

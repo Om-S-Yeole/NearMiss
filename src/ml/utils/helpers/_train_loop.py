@@ -37,9 +37,9 @@ def train_validation_loop(
         The DataLoader providing the validation data.
     stage : str
         The stage of the training, one of 'filter', 'approach', or 'likelihood'.
-    filter_rej_code_threshold : float, optional
+    filter_rej_code_threshold : float or None, optional
         The threshold for rejection code filtering, required if stage is 'filter'. Default is None.
-    device : torch.device, optional
+    device : torch.device or None, optional
         The device to perform computations on (e.g., 'cpu' or 'cuda'). Default is None.
     epochs : int, optional
         The number of epochs to train for. Default is 10.
@@ -51,6 +51,13 @@ def train_validation_loop(
     Returns
     -------
     None
+        This function does not return any value.
+
+    Raises
+    ------
+    ValueError
+        If `filter_rej_code_threshold` is not provided when the stage is 'filter'.
+
     """
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -87,8 +94,8 @@ def train_validation_loop(
             for _, (X, y) in enumerate(validation_dataloader):
                 X, y = X.to(device), y.to(device)
                 pred = model(X)
-                loss = loss_fn(pred.view(-1, 1), y.view(-1, 1)).item()
-                validation_mini_batches_loss_sum += loss
+                loss = loss_fn(pred.view(-1, 1), y.view(-1, 1))
+                validation_mini_batches_loss_sum += loss.item()
 
                 # Collect for metric computation
                 validation_y_true.extend(y.view(-1).cpu().tolist())

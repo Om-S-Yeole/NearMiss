@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -8,9 +9,9 @@ class LikelihoodStageNN(nn.Module):
 
     Parameters
     ----------
-    mean : float
+    mean : list or np.ndarray
         The mean value for feature normalization.
-    std : float
+    std : list or np.ndarray
         The standard deviation value for feature normalization.
 
     Attributes
@@ -23,19 +24,19 @@ class LikelihoodStageNN(nn.Module):
         A buffer to store the mean value for normalization.
     std : torch.Tensor
         A buffer to store the standard deviation value for normalization.
-    linear_relu_stack : nn.Sequential
-        A sequential stack of linear layers, ReLU activations, and dropout layers.
+    linear_gelu_stack : nn.Sequential
+        A sequential stack of linear layers, GELU activations, batch normalization, and dropout layers.
     """
 
-    def __init__(self, mean: float, std: float):
+    def __init__(self, mean: list | np.ndarray, std: list | np.ndarray):
         """
         Initialize the LikelihoodStageNN model.
 
         Parameters
         ----------
-        mean : float
+        mean : list or np.ndarray
             The mean value for feature normalization.
-        std : float
+        std : list or np.ndarray
             The standard deviation value for feature normalization.
         """
         super().__init__()
@@ -43,21 +44,24 @@ class LikelihoodStageNN(nn.Module):
         self.flatten = nn.Flatten()
         self.mode = "train"  # 'train', 'val', or 'test'
 
-        self.register_buffer("mean", mean)
-        self.register_buffer("std", std)
+        self.register_buffer("mean", torch.tensor(mean))
+        self.register_buffer("std", torch.tensor(std))
 
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear(62, 256),
-            nn.ReLU(),
+        self.linear_gelu_stack = nn.Sequential(
+            nn.Linear(61, 512),
+            nn.GELU(),
+            nn.BatchNorm1d(512),
+            nn.Dropout(0.1),
+            nn.Linear(512, 256),
+            nn.GELU(),
+            nn.BatchNorm1d(256),
             nn.Dropout(0.1),
             nn.Linear(256, 128),
-            nn.ReLU(),
+            nn.GELU(),
+            nn.BatchNorm1d(128),
             nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 1),
+            nn.GELU(),
+            nn.Linear(64, 1),
         )
 
     def set_mode(self, mode: str):
@@ -97,5 +101,32 @@ class LikelihoodStageNN(nn.Module):
             The output tensor after passing through the model.
         """
         x = self.flatten(x)
-        outputs = self.linear_relu_stack(x)
+        x = (x - self.mean) / (self.std)
+        outputs = self.linear_gelu_stack(x)
         return outputs
+
+    @classmethod
+    def load_trained_model(cls, path: str, device: torch.device = "cpu"):
+        """
+        Load a trained model from a checkpoint.
+
+        Parameters
+        ----------
+        path : str
+            Path to the checkpoint file.
+        device : torch.device, optional
+            The device to load the model onto (e.g., 'cpu' or 'cuda'). Default is 'cpu'.
+
+        Returns
+        -------
+        LikelihoodStageNN
+            The loaded model set to 'test' mode.
+        """
+        checkpoint = torch.load(path, map_location=device)
+        model = cls(
+            mean=checkpoint["mean"],
+            std=checkpoint["std"],
+        )
+        model.load_state_dict(checkpoint["model_state"])
+        model.set_mode("test")
+        return model

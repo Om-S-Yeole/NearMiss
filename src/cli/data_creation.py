@@ -7,6 +7,7 @@ This script provides a CLI to fetch data from an API and create training dataset
 import argparse
 from argparse import Namespace
 from datetime import datetime, timedelta
+
 from nearmiss import reterive_data_from_api, training_data_maker_from_physical_algorithm
 
 
@@ -42,6 +43,7 @@ def fetch_data_from_api_and_make_training_dataset(
     Returns
     -------
     None
+        This function does not return any value.
     """
 
     # --- Retrieve data from the api ---
@@ -119,6 +121,13 @@ def arg_parser():
     )
 
     parser.add_argument(
+        "--make_features_only_data",
+        action="store_true",
+        default=False,
+        help="Wether to make dataset containing only features in order to make future predictions from ML model. Default is False.",
+    )
+
+    parser.add_argument(
         "--r_obj_1", type=float, help="Radius of primary satellites in meters."
     )
 
@@ -145,6 +154,7 @@ def main():
     Returns
     -------
     None
+        This function does not return any value.
     """
 
     args: Namespace = arg_parser()
@@ -161,6 +171,11 @@ def main():
         )
     if args.r_threshold_KDtree:
         optional_args_for_data_creation["r_threshold_KDtree"] = args.r_threshold_KDtree
+
+    if args.make_features_only_data:
+        optional_args_for_data_creation["make_features_only_data"] = (
+            args.make_features_only_data
+        )
 
     if not optional_args_for_data_creation:
         optional_args_for_data_creation = None

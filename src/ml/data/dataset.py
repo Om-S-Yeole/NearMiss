@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
@@ -13,11 +14,11 @@ class TrainDataset(Dataset):
         The processed DataFrame containing input features and target attributes.
     stage : str, optional
         The stage of the dataset, one of 'filter', 'approach', or 'likelihood'. Default is 'filter'.
-    mean : float, optional
+    mean : list, np.ndarray, or None, optional
         The mean value for feature normalization. Default is None.
-    std : float, optional
+    std : list, np.ndarray, or None, optional
         The standard deviation value for feature normalization. Default is None.
-    device : torch.device, optional
+    device : torch.device or None, optional
         The device to store tensors (e.g., 'cpu' or 'cuda'). Default is None.
 
     Attributes
@@ -44,8 +45,8 @@ class TrainDataset(Dataset):
         self,
         processed_df: pd.DataFrame,
         stage: str = "filter",
-        mean: float | None = None,
-        std: float | None = None,
+        mean: list | np.ndarray | None = None,
+        std: list | np.ndarray | None = None,
         device: torch.device | None = None,
     ):
         """
@@ -57,11 +58,11 @@ class TrainDataset(Dataset):
             The processed DataFrame containing input features and target attributes.
         stage : str, optional
             The stage of the dataset, one of 'filter', 'approach', or 'likelihood'. Default is 'filter'.
-        mean : float, optional
+        mean : list, np.ndarray, or None, optional
             The mean value for feature normalization. Default is None.
-        std : float, optional
+        std : list, np.ndarray, or None, optional
             The standard deviation value for feature normalization. Default is None.
-        device : torch.device, optional
+        device : torch.device or None, optional
             The device to store tensors (e.g., 'cpu' or 'cuda'). Default is None.
         """
         if not isinstance(stage, str):
@@ -137,7 +138,7 @@ class TrainDataset(Dataset):
             "sat_radius_2",
         ]
 
-        self.target_attri = ["filter_rej_code", "t_close", "ln_d_min", "probab"]
+        self.target_attri = ["filter_rej_code", "ln_d_min", "probab"]
 
         self.features = None
         self.targets = None
@@ -154,13 +155,13 @@ class TrainDataset(Dataset):
                 self.df[self.input_attri].values, dtype=torch.float32, device=device
             )
             self.targets = torch.tensor(
-                self.df[self.target_attri[1:3]].values,
+                self.df[self.target_attri[1]].values,
                 dtype=torch.float32,
                 device=device,
             )
         else:
             self.features = torch.tensor(
-                self.df[self.input_attri + self.target_attri[1:3]].values,
+                self.df[self.input_attri + [self.target_attri[1]]].values,
                 dtype=torch.float32,
                 device=device,
             )
@@ -170,13 +171,14 @@ class TrainDataset(Dataset):
                 device=device,
             ).unsqueeze(1)
 
-        # Normalize features
-        if mean is not None and std is not None:
-            self.features = (self.features - mean) / (std + 1e-8)
+        if mean is not None:
+            self.features_mean = mean
         else:
-            self.features_mean = self.features.mean(dim=0)
-            self.features_std = self.features.std(dim=0) + 1e-8
-            self.features = (self.features - self.features_mean) / self.features_std
+            self.features_mean = self.features.mean(dim=0).cpu().numpy()
+        if std is not None:
+            self.features_std = std
+        else:
+            self.features_std = (self.features.std(dim=0) + 1e-8).cpu().numpy()
 
     def __getitem__(self, index):
         """
@@ -193,6 +195,71 @@ class TrainDataset(Dataset):
             A tuple containing the features and target for the given index.
         """
         return self.features[index], self.targets[index]
+
+    def __len__(self):
+        """
+        Get the number of data points in the dataset.
+
+        Returns
+        -------
+        int
+            The number of data points in the dataset.
+        """
+        return len(self.features)
+
+
+class TestFeaturesDataset(Dataset):
+    """
+    A PyTorch Dataset for testing or making predictions with input features.
+
+    Parameters
+    ----------
+    features_df : pd.DataFrame
+        The DataFrame containing input features.
+    device : torch.device
+        The device to store tensors (e.g., 'cpu' or 'cuda').
+
+    Attributes
+    ----------
+    features : torch.Tensor
+        The tensor containing input features.
+    """
+
+    def __init__(
+        self,
+        features_df: pd.DataFrame,
+        device: torch.device,
+    ):
+        """
+        Initialize the TestFeaturesDataset.
+
+        Parameters
+        ----------
+        features_df : pd.DataFrame
+            The DataFrame containing input features.
+        device : torch.device
+            The device to store tensors (e.g., 'cpu' or 'cuda').
+        """
+        super().__init__()
+        self.features = torch.tensor(
+            features_df.values, dtype=torch.float32, device=device
+        )
+
+    def __getitem__(self, index):
+        """
+        Get a single data point from the dataset.
+
+        Parameters
+        ----------
+        index : int
+            The index of the data point to retrieve.
+
+        Returns
+        -------
+        torch.Tensor
+            The features for the given index.
+        """
+        return self.features[index]
 
     def __len__(self):
         """

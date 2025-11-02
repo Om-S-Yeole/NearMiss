@@ -113,8 +113,6 @@ class MLOutputAttributes:
     ----------
     filter_rej_code : int
         Integer code indicating which filter rejected the pair (0 if no rejection).
-    t_close : float
-        Time of closest approach in the J2000 system, scaled by 1e5.
     ln_d_min : float
         Natural logarithm of (1 + minimum distance).
     probab : float
@@ -122,7 +120,6 @@ class MLOutputAttributes:
     """
 
     filter_rej_code: int  # Integer code indicating which filter rejected the pair (0 if no rejection).
-    t_close: float  # Time of closest approach in J2000 system/1e5
     ln_d_min: float  # ln(1 + minimum_distance)
     probab: float  # Probability of collision at closest approach.
 

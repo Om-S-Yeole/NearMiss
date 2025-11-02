@@ -60,6 +60,5 @@ csv_attri:
   - tle_age_2
   - sat_radius_2
   - filter_rej_code
-  - t_close
   - ln_d_min
   - probab

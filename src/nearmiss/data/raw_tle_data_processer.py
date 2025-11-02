@@ -28,6 +28,7 @@ def training_data_maker_from_physical_algorithm(
     t_interval: timedelta = timedelta(seconds=900),
     r_threshold_KDtree: float = 12,
     from_latest_raw_data_file: bool = True,
+    make_features_only_data: bool = False,
     raw_file_name: str | None = None,
     optional_args: dict | None = None,
 ):
@@ -46,6 +47,8 @@ def training_data_maker_from_physical_algorithm(
         Distance threshold in kilometers for identifying potential satellite pairs using KDTree. Default is 12 km.
     from_latest_raw_data_file : bool, optional
         Whether to process the latest raw data file. Default is True.
+    make_features_only_data : bool, optional
+        Whether to generate a dataset containing only features for future predictions. Default is False.
     raw_file_name : str or None, optional
         Name of the raw TLE file to process. If None, the latest file is used. Default is None.
     optional_args : dict or None, optional
@@ -54,6 +57,7 @@ def training_data_maker_from_physical_algorithm(
     Returns
     -------
     None
+        This function does not return any value.
 
     Raises
     ------
@@ -139,6 +143,11 @@ def training_data_maker_from_physical_algorithm(
     os.makedirs(processed_dir_path, exist_ok=True)
     processed_file_path = os.path.join(processed_dir_path, processed_file_name)
 
+    if make_features_only_data:
+        to_predict_dir_path = os.path.join(data_dir_path, "to_predict")
+        os.makedirs(to_predict_dir_path, exist_ok=True)
+        processed_file_path = os.path.join(to_predict_dir_path, processed_file_name)
+
     # Read all TLEs into memory first
     with open(file_path, "r") as read_file:
         print("Starting the task. Reading all TLEs. Please wait...")
@@ -201,6 +210,8 @@ def training_data_maker_from_physical_algorithm(
         attributes: list = _read_yaml("nearmiss/data/configs/attributes.yaml")[
             "csv_attri"
         ]
+        if make_features_only_data:
+            attributes = attributes[:-3]
         attri_str: str = ""
         for idx, attri in enumerate(attributes):
             if idx == len(attributes) - 1:
@@ -273,16 +284,23 @@ def training_data_maker_from_physical_algorithm(
             output = list(asdict(sat_pair_attri.output).values())
 
             # Convert all values to strings and write in one go
-            row = [
-                *map(str, sat_1_inp.values()),
-                *map(str, sat_2_inp.values()),
-                *map(str, output),
-            ]
+            if make_features_only_data:
+                row = [
+                    *map(str, sat_1_inp.values()),
+                    *map(str, sat_2_inp.values()),
+                ]
+            else:
+                row = [
+                    *map(str, sat_1_inp.values()),
+                    *map(str, sat_2_inp.values()),
+                    *map(str, output),
+                ]
             write_file.write(",".join(row) + "\n")
 
-    with open(
-        os.path.join(data_dir_path, "latest_processed_data_file.txt"), "w"
-    ) as file:
-        file.write(processed_file_name)
+    if not make_features_only_data:
+        with open(
+            os.path.join(data_dir_path, "latest_processed_data_file.txt"), "w"
+        ) as file:
+            file.write(processed_file_name)
 
     print(f"TLEs in file processed successfully in file {processed_file_name}.")

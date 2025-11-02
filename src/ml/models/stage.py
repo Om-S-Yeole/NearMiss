@@ -69,7 +69,7 @@ def load_stage(
         The threshold for validation loss to determine worsening. Default is 0.01.
     patience : int, optional
         The number of consecutive epochs allowed to worsen before stopping. Default is 2.
-    filter_rej_code_threshold : float, optional
+    filter_rej_code_threshold : float or None, optional
         The threshold for rejection code filtering, required if stage is 'filter'. Default is None.
 
     Returns
@@ -106,7 +106,9 @@ def load_stage(
     stage_model = None
     if stage == "filter":
         stage_model = FilterStageNN(
-            mean=full_dataset.features_mean, std=full_dataset.features_std
+            mean=full_dataset.features_mean,
+            std=full_dataset.features_std,
+            filter_rej_code_threshold=filter_rej_code_threshold,
         ).to(device)
     elif stage == "approach":
         stage_model = ApproachStageNN(
@@ -145,7 +147,21 @@ def load_stage(
 
     train_validation_loop(**args)
 
-    torch.save(stage_model.state_dict(), stage_model_state_path)
+    checkpoint = {
+        "model_state": stage_model.state_dict(),
+        "model_class": stage_model.__class__.__name__,
+        "mean": stage_model.mean.tolist(),
+        "std": stage_model.std.tolist(),
+    }
+
+    if stage == "filter":
+        checkpoint.update(
+            {
+                "filter_rej_code_threshold": stage_model.filter_rej_code_threshold.item(),
+            }
+        )
+
+    torch.save(checkpoint, stage_model_state_path)
 
     evaluation_results = evaluation_loop(stage_model, evaluation_dataloader, device)
 

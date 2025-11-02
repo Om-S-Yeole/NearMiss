@@ -7,6 +7,14 @@ import torch.optim as optim
 
 from ml.models.stage import load_stage
 
+FILTER_STAGE_MODEL_STATE_PATH = "./ml/models/checkpoints/filter_stage/filter_stage.pth"
+APPROACH_STAGE_MODEL_STATE_PATH = (
+    "./ml/models/checkpoints/approach_stage/approach_stage.pth"
+)
+LIKELIHOOD_STAGE_MODEL_STATE_PATH = (
+    "./ml/models/checkpoints/likelihood_stage/likelihood_stage.pth"
+)
+
 
 def train_full_model(
     from_latest_processed_file: bool = True,
@@ -15,9 +23,9 @@ def train_full_model(
     filter_stage_lr: float | int = 1e-3,
     filter_stage_epochs: int = 15,
     approach_stage_lr: float | int = 1e-3,
-    approach_stage_epochs: int = 15,
+    approach_stage_epochs: int = 100,
     likelihood_stage_lr: float | int = 1e-3,
-    likelihood_stage_epochs: int = 15,
+    likelihood_stage_epochs: int = 100,
     filter_rej_code_threshold: float = 0.5,
 ) -> None:
     """
@@ -27,7 +35,7 @@ def train_full_model(
     ----------
     from_latest_processed_file : bool, optional
         Whether to use the latest processed file. Default is True.
-    processed_file_name : str, optional
+    processed_file_name : str or None, optional
         The name of the processed file to use. Required if `from_latest_processed_file` is False. Default is None.
     save_training_evaluations : bool, optional
         Whether to save the training evaluations to a file. Default is True.
@@ -38,11 +46,11 @@ def train_full_model(
     approach_stage_lr : float or int, optional
         Learning rate for the approach stage. Default is 1e-3.
     approach_stage_epochs : int, optional
-        Number of epochs for the approach stage. Default is 15.
+        Number of epochs for the approach stage. Default is 100.
     likelihood_stage_lr : float or int, optional
         Learning rate for the likelihood stage. Default is 1e-3.
     likelihood_stage_epochs : int, optional
-        Number of epochs for the likelihood stage. Default is 15.
+        Number of epochs for the likelihood stage. Default is 100.
     filter_rej_code_threshold : float, optional
         Threshold for the filter rejection code. Must be between 0 and 1. Default is 0.5.
 
@@ -56,6 +64,7 @@ def train_full_model(
     Returns
     -------
     None
+        This function does not return any value.
     """
     if not isinstance(from_latest_processed_file, bool):
         raise TypeError(
@@ -129,16 +138,6 @@ def train_full_model(
 
     df: pd.DataFrame = pd.read_csv(data_file_path)
 
-    filter_stage_model_state_path = (
-        "./ml/models/checkpoints/filter_stage/filter_stage.pth"
-    )
-    approach_stage_model_state_path = (
-        "./ml/models/checkpoints/approach_stage/approach_stage.pth"
-    )
-    likelihood_stage_model_state_path = (
-        "./ml/models/checkpoints/likelihood_stage/likelihood_stage.pth"
-    )
-
     generator = torch.Generator(device=device).manual_seed(42)
 
     # ------------------------- Stage 1: Filter -------------------------
@@ -152,7 +151,7 @@ def train_full_model(
         stage="filter",
         loss_fn=nn.BCEWithLogitsLoss,
         optimizer=optim.Adam,
-        stage_model_state_path=filter_stage_model_state_path,
+        stage_model_state_path=FILTER_STAGE_MODEL_STATE_PATH,
         generator=generator,
         device=device,
         stage_lr=filter_stage_lr,
@@ -187,17 +186,17 @@ def train_full_model(
     mask_np = (~predicted_filter_rej_code_mask.cpu().numpy()).astype(bool)
     df_approach = df.loc[mask_np]
 
-    predicted_t_close_ln_d_min = load_stage(
+    predicted_ln_d_min = load_stage(
         df=df_approach,
         stage="approach",
         loss_fn=nn.MSELoss,
         optimizer=optim.Adam,
-        stage_model_state_path=approach_stage_model_state_path,
+        stage_model_state_path=APPROACH_STAGE_MODEL_STATE_PATH,
         generator=generator,
         device=device,
         stage_lr=approach_stage_lr,
         stage_epochs=approach_stage_epochs,
-        val_dataset_ratio=0.2,
+        val_dataset_ratio=0.1,
         train_dataloader_batch_size=1028,
         train_dataloader_to_shuffle=True,
         val_dataloader_batch_size=256,
@@ -207,8 +206,6 @@ def train_full_model(
         patience=2,
         filter_rej_code_threshold=None,
     )
-
-    predicted_t_close_ln_d_min = predicted_t_close_ln_d_min.reshape(-1, 2)
 
     print("-----------------------------------------------------")
     print("End of the Stage 2: Approach")
@@ -220,9 +217,7 @@ def train_full_model(
     print("Starting of the Stage 3: Likelihood")
     print("-----------------------------------------------------")
 
-    df_approach.loc[:, ["t_close", "ln_d_min"]] = (
-        predicted_t_close_ln_d_min.cpu().numpy()
-    )
+    df_approach.loc[:, ["ln_d_min"]] = predicted_ln_d_min.cpu().numpy()
     df_likelihood = df_approach
 
     predicted_probab = load_stage(
@@ -230,7 +225,7 @@ def train_full_model(
         stage="likelihood",
         loss_fn=nn.BCEWithLogitsLoss,
         optimizer=optim.Adam,
-        stage_model_state_path=likelihood_stage_model_state_path,
+        stage_model_state_path=LIKELIHOOD_STAGE_MODEL_STATE_PATH,
         generator=generator,
         device=device,
         stage_lr=likelihood_stage_lr,
@@ -272,7 +267,7 @@ def train_full_model(
                     write_file.write("1,0.0,0.0,0.0\n")
                 else:  # Means if the pair is not rejected by filter
                     write_file.write(
-                        f"0,{predicted_t_close_ln_d_min[i][0]},{predicted_t_close_ln_d_min[i][1]},{predicted_probab[i]}\n"
+                        f"0,{predicted_ln_d_min[i].item()},{predicted_probab[i]}\n"
                     )
                     i += 1
 
