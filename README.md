@@ -14,15 +14,6 @@ Project conceptually flows as follows.
 
 ---
 
-## 📊 Current Model Performance
-
-| Metric | Description | Score |
-|:-------|:-------------|:------|
-| R² (ln_d_min) | Accuracy of predicted log (minimum distance) | **0.797** |
-| R² (probab) | Accuracy of predicted collision probability | **0.583** |
-
----
-
 ## Table of Contents
 
 - [Installation](#installation)
