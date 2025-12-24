@@ -74,3 +74,4 @@ uvicorn==0.40.0
 virtualenv==20.35.3
 webencodings==0.5.1
 gunicorn==23.0.0
+streamlit==1.52.2
