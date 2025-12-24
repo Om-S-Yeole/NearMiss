@@ -21,7 +21,11 @@ dependencies = [
     "sgp4>=2.20",
     "torch==2.9.0+cu128",
     "torchvision==0.24.0+cu128",
-    "scikit-learn==1.7.2"
+    "scikit-learn==1.7.2",
+    "fastapi==0.127.0",
+    "uvicorn==",
+    "unicorn==0.40.0",
+    "gunicorn==23.0.0",
 ]
 
 [project.optional-dependencies]
