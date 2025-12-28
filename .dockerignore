@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Virtual environments
+myenv/
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+*.md
+docs/
+examples/
+
+# Test files
+tests/
+src/tests/
+
+# Large data files
+# data/raw/*.txt
+# data/processed/*.csv
+# data/predictions/*.csv
+# data/to_predict/*.csv
+# data/training_eval/*.csv
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# License and project files
+LICENSE.txt
+pyproject.toml
